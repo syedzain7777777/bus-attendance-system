@@ -17,6 +17,9 @@ public class BusController {
 
     private final BusService busService;
 
+    // Replace with your deployed backend URL here
+    private static final String BACKEND_URL = "https://bus-attendance.onrender.com";
+
     public BusController(BusService busService) {
         this.busService = busService;
     }
@@ -26,8 +29,8 @@ public class BusController {
     public Map<String, Object> createBus(@RequestBody Map<String, String> req) throws Exception {
         Bus bus = busService.createBus(req.get("busNumber"), req.get("route"));
 
-        // For QR, just set a dummy ENTRY by default
-        String qrValue = "http://localhost:8080/api/bus/scan/manual/" + bus.getBusId() + "/ENTRY";
+        // QR code points to deployed backend URL
+        String qrValue = BACKEND_URL + "/api/bus/scan/manual/" + bus.getBusId() + "/ENTRY";
         byte[] qrImage = QRCodeGenerator.generateQRCode(qrValue, 250, 250);
         String qrBase64 = Base64.getEncoder().encodeToString(qrImage);
 

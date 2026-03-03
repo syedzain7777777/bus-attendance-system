@@ -5,57 +5,15 @@
     <title>Bus Attendance Scanner</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body {
-            font-family: Arial;
-            background: #f4f4f9;
-            text-align:center;
-            padding:20px;
-        }
-        .box {
-            background:#fff;
-            padding:20px;
-            margin:20px auto;
-            border-radius:10px;
-            width:320px;
-            box-shadow:0 0 10px rgba(0,0,0,0.1);
-        }
-        input {
-            width:90%;
-            padding:8px;
-            margin:5px 0;
-            border-radius:5px;
-            border:1px solid #ccc;
-        }
-        button {
-            padding:10px 20px;
-            background:#4CAF50;
-            color:white;
-            border:none;
-            border-radius:5px;
-            cursor:pointer;
-            margin-top:10px;
-        }
-        button:hover {
-            background:#45a049;
-        }
-        #qrImage {
-            width:250px;
-            height:250px;
-            margin-top:10px;
-        }
-        #qr-reader {
-            width:300px;
-            margin:auto;
-        }
-        #scanResult {
-            margin-top:10px;
-            font-weight:bold;
-            color:#007BFF;
-        }
-        select {
-            padding:5px;
-            margin:5px;
-        }
+        body { font-family: Arial; background: #f4f4f9; text-align:center; padding:20px; }
+        .box { background:#fff; padding:20px; margin:20px auto; border-radius:10px; width:320px; box-shadow:0 0 10px rgba(0,0,0,0.1); }
+        input { width:90%; padding:8px; margin:5px 0; border-radius:5px; border:1px solid #ccc; }
+        button { padding:10px 20px; background:#4CAF50; color:white; border:none; border-radius:5px; cursor:pointer; margin-top:10px; }
+        button:hover { background:#45a049; }
+        #qrImage { width:250px; height:250px; margin-top:10px; }
+        #qr-reader { width:300px; margin:auto; }
+        #scanResult { margin-top:10px; font-weight:bold; color:#007BFF; }
+        select { padding:5px; margin:5px; }
     </style>
 </head>
 <body>
@@ -84,6 +42,7 @@
 </div>
 
 <script>
+    const BASE_URL = "https://bus-attendance.onrender.com/api/bus"; // <-- your deployed backend URL
     let lastBusId = null;
 
     // Create Bus + show QR
@@ -91,8 +50,8 @@
         const busNumber = document.getElementById('busNumber').value;
         const route = document.getElementById('route').value;
 
-        fetch("http://localhost:8080/api/bus/create", {
-            method:"POST",
+        fetch(`${BASE_URL}/create`, {
+            method: "POST",
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify({busNumber, route})
         })
@@ -103,51 +62,49 @@
             document.getElementById('qrImage').style.display = 'block';
             alert("Bus Created: ID " + data.busId);
         })
-        .catch(err => console.error(err));
+        .catch(err => console.error("Error creating bus:", err));
     }
 
-   async function scanBus() {
-    if (!lastBusId) {
-        alert("Scan a QR code first!");
-        return;
-    }
-    const action = document.getElementById('scanAction').value.trim().toUpperCase();
+    async function scanBus() {
+        if (!lastBusId) {
+            alert("Scan a QR code first!");
+            return;
+        }
+        const action = document.getElementById('scanAction').value.trim().toUpperCase();
 
-    fetch(`http://localhost:8080/api/bus/scan/manual/${lastBusId}/${action}`, {
-        method: "POST"
-    })
-    .then(res => {
-        if (!res.ok) throw new Error("Server returned " + res.status);
-        return res.json();
-    })
-    .then(data => {
-        const scanTime = new Date(data.scanTime).toLocaleString();
-        document.getElementById('scanResult').innerText =
-            `Bus ID ${lastBusId} ${action} logged successfully at ${scanTime}`;
-    })
-    .catch(err => {
-        console.error(err);
-        document.getElementById('scanResult').innerText = "Error logging scan: " + err.message;
-    });
-}
+        fetch(`${BASE_URL}/scan/manual/${lastBusId}/${action}`, { method: "POST" })
+        .then(res => {
+            if (!res.ok) throw new Error("Server returned " + res.status);
+            return res.json();
+        })
+        .then(data => {
+            const scanTime = new Date(data.scanTime).toLocaleString();
+            document.getElementById('scanResult').innerText =
+                `Bus ID ${lastBusId} ${action} logged successfully at ${scanTime}`;
+        })
+        .catch(err => {
+            console.error("Error scanning bus:", err);
+            document.getElementById('scanResult').innerText = "Error logging scan: " + err.message;
+        });
+    }
+
     // QR Code Scanner
-    function onScanSuccess(decodedText, decodedResult) {
-    try {
-        const url = new URL(decodedText); // parse the full URL
-        const pathParts = url.pathname.split('/'); // ['', 'api','bus','scan','manual','1','ENTRY']
-        console.log(pathParts);
-        const busId = pathParts[pathParts.length - 2]; // 2nd last segment is busId
-        const action =  document.getElementById('scanAction').value.trim().toUpperCase()// last segment is action
+    function onScanSuccess(decodedText) {
+        try {
+            const url = new URL(decodedText);
+            const pathParts = url.pathname.split('/');
+            const busId = pathParts[pathParts.length - 2];
+            const action = document.getElementById('scanAction').value.trim().toUpperCase();
 
-        lastBusId = busId;
-        document.getElementById('scanAction').value = action; // auto select ENTRY/EXIT in dropdown
-        document.getElementById('scanResult').innerText =
-            `Scanned Bus ID: ${busId}, Action: ${action}`;
-    } catch(e) {
-        console.error("Invalid QR code format", e);
-        document.getElementById('scanResult').innerText = "Invalid QR code!";
+            lastBusId = busId;
+            document.getElementById('scanAction').value = action;
+            document.getElementById('scanResult').innerText =
+                `Scanned Bus ID: ${busId}, Action: ${action}`;
+        } catch(e) {
+            console.error("Invalid QR code format", e);
+            document.getElementById('scanResult').innerText = "Invalid QR code!";
+        }
     }
-}
 
     var html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: 250 });
     html5QrcodeScanner.render(onScanSuccess);
