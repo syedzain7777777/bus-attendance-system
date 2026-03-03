@@ -18,8 +18,7 @@ public class BusController {
     private final BusService busService;
 
     // Replace with your deployed backend URL here
-    private static final String BACKEND_URL = "https://bus-attendance.onrender.com";
-
+    private static final String BACKEND_URL = "https://bus-attendance-system-4.onrender.com";
     public BusController(BusService busService) {
         this.busService = busService;
     }
